@@ -9,16 +9,16 @@ Relative glycosylation score is calculated by subtracting the whole protein valu
 1. Open R and source the glycorunn.R script
 2. Setwd() to a directory containing the data files. Each lane or sample should have its own directory containing nothing but its specific files.
 3. Call glycoRun() script, which takes the following parameters:
-  a. ladderWP: The csv file containing the whole protein ladder. Default is "ladder.wp.csv"
-  b. LadderGP: The csv file containing the glycoprotein ladder. This may be the same file as the ladderWP. Default is "ladder.gp.csv"
-  c. ladderValuesWP: An array of kilodalton sizes marked by the whole protein ladder. This list will be used to assign ladder peaks to sizes. Default is 'c(205, 150, 100, 75, 50, 37, 25, 20, 15, 10)'
-  d. ladderValuesGP: An array of kilodalton sizes marked by the whole protein ladder. This list will be used to assign ladder peaks to sizes. If the laddWP and ladderGP files are the same, this is ignored. Default is 'c(75, 25)'.
-  e. wp: The csv containing the whole protein lane extraction. This *MUST* be the same length as the ladderWP file. Default is "wp.csv"
-  f. gp: The csv containing the glycosylated protein lane extraction. This *MUST* be the same length as the ladderGP file. Default is "gp.csv"
-  g. corrections: Whether or not corrections should be made to the dataset. Default is 'T' and there is no current conceivable reason to makr it 'F'.
-  h. givenThresholds: When calling peaks, an intensity threshold can be given. This is an artifact of the original code that pulled protein peak data and has been left in the case that this functionality is requested again. Default is 'F'.
-  i. ladderAttempts: The script will try to find the number of peaks in the ladder data corresponding to the number of values given. If it can't, it will adjust the thresholds up or down to find the appropriate number of peaks. This parameter controls how many times this correction will be performd until it gives up. Default is '10'.
-  j. upperOrLowerLadder: If the script cannot find the appropriate number of peaks defined by the 'ladderAttempts' parameter, this parameter tells the script whether it should use the 'upper' or 'lower' part of the ladderValues array to assign peak sizes. Default is 'lower'.
+  1. ladderWP: The csv file containing the whole protein ladder. Default is "ladder.wp.csv"
+  2. LadderGP: The csv file containing the glycoprotein ladder. This may be the same file as the ladderWP. Default is "ladder.gp.csv"
+  3. ladderValuesWP: An array of kilodalton sizes marked by the whole protein ladder. This list will be used to assign ladder peaks to sizes. Default is 'c(205, 150, 100, 75, 50, 37, 25, 20, 15, 10)'
+  4. ladderValuesGP: An array of kilodalton sizes marked by the whole protein ladder. This list will be used to assign ladder peaks to sizes. If the laddWP and ladderGP files are the same, this is ignored. Default is 'c(75, 25)'.
+  5. wp: The csv containing the whole protein lane extraction. This *MUST* be the same length as the ladderWP file. Default is "wp.csv"
+  6. gp: The csv containing the glycosylated protein lane extraction. This *MUST* be the same length as the ladderGP file. Default is "gp.csv"
+  7. corrections: Whether or not corrections should be made to the dataset. Default is 'T' and there is no current conceivable reason to makr it 'F'.
+  8. givenThresholds: When calling peaks, an intensity threshold can be given. This is an artifact of the original code that pulled protein peak data and has been left in the case that this functionality is requested again. Default is 'F'.
+  9. ladderAttempts: The script will try to find the number of peaks in the ladder data corresponding to the number of values given. If it can't, it will adjust the thresholds up or down to find the appropriate number of peaks. This parameter controls how many times this correction will be performd until it gives up. Default is '10'.
+  10. upperOrLowerLadder: If the script cannot find the appropriate number of peaks defined by the 'ladderAttempts' parameter, this parameter tells the script whether it should use the 'upper' or 'lower' part of the ladderValues array to assign peak sizes. Default is 'lower'.
   
 4. Assuming you use the default file names, none of these paramters should need to be changed when running the script. It will generate two new directories ('csv' and 'figures') to save the generated data and figures.
 
