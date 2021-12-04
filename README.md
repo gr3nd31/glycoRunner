@@ -7,6 +7,9 @@ Relative glycosylation score is calculated by subtracting the whole protein valu
 ### Example of the whole protein heatmap:
 https://github.com/gr3nd31/glycoRunner/edit/main/Example_relGlyco.pdf
 
+### Example of the intensity correlation plot:
+https://github.com/gr3nd31/glycoRunner/edit/main/Example_signalCorr_relGlycoScore.pdf
+
 ## How to run:
 
 1. Open R and source the glycorunn.R script
