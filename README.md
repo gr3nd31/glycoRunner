@@ -4,6 +4,9 @@ Additionally, extractions should be performed using a box ROI in ImageJ. While l
 The code has additional functionality to automatically call specific protein band peaks, but this is currently disabled until someone asks for it back. It *only* correlates data and makes pretty graphs now.
 Relative glycosylation score is calculated by subtracting the whole protein values from the glycosylation protein values at each pixel. and performing lower quartile normalization.
 
+### Example of the whole protein heatmap:
+[embed]https://github.com/gr3nd31/glycoRunner/edit/main/Example_relGlyco.pdf[/embed]
+
 ## How to run:
 
 1. Open R and source the glycorunn.R script
