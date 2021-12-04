@@ -5,7 +5,7 @@ The code has additional functionality to automatically call specific protein ban
 Relative glycosylation score is calculated by subtracting the whole protein values from the glycosylation protein values at each pixel. and performing lower quartile normalization.
 
 ### Example of the whole protein heatmap:
-[embed]https://github.com/gr3nd31/glycoRunner/edit/main/Example_relGlyco.pdf[/embed]
+https://github.com/gr3nd31/glycoRunner/edit/main/Example_relGlyco.pdf
 
 ## How to run:
 
