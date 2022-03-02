@@ -13,10 +13,12 @@ glycoRun <- function(
   wp = "wp.csv",
   # Glycosylation gel profile file
   gp = "gp.csv",
+  # Name of the background correction csv for coomassie
+  wp_background_file = "wp_background.csv",
+  # Name of the background correction csv for glyco
+  gp_background_file = "gp_background.csv",
   # Output file name
   outputCSV = "allData.csv",
-  # Correct for background variation along the gel
-  corrections = T,
   # Location of the peak data
   peakCSV = "csv/allData.csv",
   # Numerical threshold for peak calling
@@ -24,7 +26,7 @@ glycoRun <- function(
   # The number of iterations attempted to get the ladder right before it gives up
   ladderAttempts = 10,
   # If the ladder attempts max out, should the peaks called be assumed as the upper or lower portion of the given ladder sizes?
-  upperOrLowerLadder = "lower") {
+  upperOrLowerLadder = "upper") {
   
   print("Running GlycoRunner...")
   cat("\n")
@@ -49,107 +51,74 @@ glycoRun <- function(
   # If the corrections option is TRUE and the ladder file is present, the data gets corrected
   correctionsCheck <- list.files()
   # First the ladder gets corrected
-  if (corrections == T & ladderWP %in% correctionsCheck){
+  if (ladderWP %in% correctionsCheck){
     # The csv's are listed
     cList <- list.files(pattern = ".csv")
     # The csvs are read into a dataframe
     pxWP <- read.csv(ladderWP)
+    wp <- read.csv(wp)
     # The dataframe is given a name and type on ladder
     # For non-ladder samples, these are taken from the file name: 'name'_'type'.csv
     # Dataframe names are changed
     names(pxWP)[1] <- "position"
     names(pxWP)[2] <- "Ladder_value"
-
-    # An initial linear relationship is determined and the slope and intercepts are gathered
-    sampleLine <- lm(Ladder_value~position, data = pxWP)
-    intercept <- sampleLine[1]$coefficients[1]
-    slope <- sampleLine[1]$coefficients[2]
-    # The value at each position is adjusted by the initial linear regression
-    pxWP$adjValue <- pxWP$Ladder_value-(slope*pxWP$position+intercept)
     
-    # The adjusted values are used to generate a new regression
-    # So long as the slope is above above 0.001, this process is iterated
-    while (abs(slope) > 0.001){
-      sampleLine <- lm(adjValue~position, data = pxWP)
-      intercept <- sampleLine[1]$coefficients[1]
-      slope <- sampleLine[1]$coefficients[2]
-      pxWP$adjValue <- pxWP$adjValue-(slope*pxWP$position+intercept)
+    names(wp)[1] <- "position"
+    names(wp)[2] <- "WP_value"
+    
+    if (wp_background_file %in% correctionsCheck){
+      print("Applying background corrections to whole protein files...")
+      background_data <- read.csv(wp_background_file)
+      pxWP$Ladder_value <- pxWP$Ladder_value - background_data$Gray_Value
+      wp$WP_value <- wp$WP_value - background_data$Gray_Value
+    } else{
+      print("Background file not found. Try again")
     }
-    pxWP$Ladder_value <- pxWP$adjValue
-    pxWP <- pxWP[,1:2]
-
-    # The same process is done with the other csv files
-    # First the WP gel
-    interim <- read.csv(wp)
-    names(interim)[1] <- "position"
-    names(interim)[2] <- "value"
-    sampleLine <- lm(value~position, data = interim)
-    intercept <- sampleLine[1]$coefficients[1]
-    slope <- sampleLine[1]$coefficients[2]
-    interim$adjValue <- interim$value-(slope*interim$position+intercept)
-    while (abs(slope) > 0.001){
-      sampleLine <- lm(adjValue~position, data = interim)
-      intercept <- sampleLine[1]$coefficients[1]
-      slope <- sampleLine[1]$coefficients[2]
-      interim$adjValue <- interim$adjValue-(slope*interim$position+intercept)
-    }
-    write.csv(interim, "csv/wp_corrected.csv", row.names = F)
+    write.csv(wp, "csv/wp_corrected.csv", row.names = F)
     # The corrected WP points are then bound to the WP ladder dataframe
-    if (nrow(interim) != nrow(pxWP)){
+    if (nrow(wp) != nrow(pxWP)){
       print("The WP ladder is not the same length as the WP sample file. Script will now self-destruct...")
     }
-    pxWP$WP_value <- interim$adjValue
+    pxWP$WP_value <- wp$WP_value
 
     # Now we do the same for the GP ladder and sample
+    gp <- read.csv(gp)
+    names(gp)[1] <- "position"
+    names(gp)[2] <- "GP_value"
+    if (gp_background_file %in% correctionsCheck){
+      print("Applying background corrections to glycoprotein files...")
+      background_data <- read.csv(gp_background_file)
+      gp$GP_value <- gp$GP_value - background_data$Gray_Value
+    } else {
+      print("Background file not found. Try again although it may not be necessary")
+    }
+    
     # If the ladders are different files, then the ladders and samples will be corrected
     if (ladderGP != ladderWP){
-      print("Your ladder files are different and this version isn't fully vetted. Prepare for possible failure.")
-      cat("\n")
       # The GP ladder is read into a CSV
       pxGP <- read.csv(ladderGP)
       # Dataframe names are changed
       names(pxGP)[1] <- "position"
       names(pxGP)[2] <- "Ladder_value"
-      
-      # An initial linear relationship is determined and the slope and intercepts are gathered
-      sampleLine <- lm(Ladder_value~position, data = pxGP)
-      intercept <- sampleLine[1]$coefficients[1]
-      slope <- sampleLine[1]$coefficients[2]
-      # The value at each position is adjusted by the initial linear regression
-      pxGP$adjValue <- pxGP$Ladder_value-(slope*pxGP$position+intercept)
-      
-      # The adjusted values are used to generate a new regression
-      # So long as the slope is above above 0.001, this process is iterated
-      while (abs(slope) > 0.001){
-        sampleLine <- lm(adjValue~position, data = pxGP)
-        intercept <- sampleLine[1]$coefficients[1]
-        slope <- sampleLine[1]$coefficients[2]
-        pxGP$adjValue <- pxGP$adjValue-(slope*pxGP$position+intercept)
+      if (gp_background_file %in% correctionsCheck){
+        print("Applying background corrections to glycoprotein ladder...")
+        background_data <- read.csv(gp_background_file)
+        pxGP$Ladder_value <- pxGP$Ladder_value - background_data$Gray_Value
+      } else{
+        print("Background file not found. Try again although it may not be necessary")
       }
-      pxGP$Ladder_value <- pxGP$adjValue
-      pxGP <- pxGP[,1:2]
+      print("Background correction is complete.")
+      cat("\n")
 
-      # Then the GP gel is read, corrected, and bound to the GP ladder
-      interim <- read.csv(gp)
-      names(interim)[1] <- "position"
-      names(interim)[2] <- "value"
-      sampleLine <- lm(value~position, data = interim)
-      intercept <- sampleLine[1]$coefficients[1]
-      slope <- sampleLine[1]$coefficients[2]
-      interim$adjValue <- interim$value-(slope*interim$position+intercept)
-      while (abs(slope) > 0.001){
-        sampleLine <- lm(adjValue~position, data = interim)
-        intercept <- sampleLine[1]$coefficients[1]
-        slope <- sampleLine[1]$coefficients[2]
-        interim$adjValue <- interim$adjValue-(slope*interim$position+intercept)
-      }
       # The corrected GP values are saved
-      write.csv(interim, "csv/gp_corrected.csv", row.names = F)
-      if (nrow(interim) != nrow(pxGP)){
+      write.csv(gp, "csv/gp_corrected.csv", row.names = F)
+      if (nrow(gp) != nrow(pxGP)){
         print("The GP ladder is not the same length as the GP sample file. Script will now self-destruct...")
       }
       # The corrected GP values are saved to the GP ladder
-      pxGP$GP_value <- interim$adjValue
+      pxGP$GP_value <- gp$GP_value
+      
+      print("Attempting to equalize datasets...")
 
       #Now we have to correct everything
       # First, lets assign ladder peaks to their corresponding values
@@ -162,6 +131,8 @@ glycoRun <- function(
                  ladder = ladderValuesWP,
                  attemptsForPeaks = ladderAttempts, 
                  ladderUpOrDown = upperOrLowerLadder)
+      print("Whole protein ladder peaks called...")
+      cat("\n")
       # Now that ladder peaks are assigned, we'll fill out the rest of the positions by linear regression between peaks
       # First the pxWP values
       ladderValuesWP <- unique(pxWP[pxWP$size != 0,]$size)
@@ -202,6 +173,7 @@ glycoRun <- function(
                  attemptsForPeaks = ladderAttempts, 
                  ladderUpOrDown = upperOrLowerLadder)
 
+      print("Glyco ladder peaks called...")
       # Now we adjust the positions so that the GP values and WP values match based on the ladder peaks
       # First, we'll align the GP position based on the ladder peaks 
       # Since not all ladder marks may have been found, we'll restrict our ladder bands to those that were assigned
@@ -215,12 +187,11 @@ glycoRun <- function(
       # These will act as our upper and lower bounds or 'anchors' (see below)
       # While we could just use these anchors to bin or expand the GP data to fit WP positions, its better to do this on a stack-by-stack basis where
       # stacks are the pixels between known boundaries. We've got two boundaries, but the GP ladder peaks can provide us with other boundaries
-      
       # For each band in the GP ladder we'll assign is a newPosition based on the position of the pixel in the pxWP with the closest size
       for (gpPeakNumber in length(ladderValuesGP)){
         gpPeak <- ladderValuesGP[gpPeakNumber]
         # Then we find the position of the WP pixel that is closest in size to the GP ladder peak and assign the GP ladder peak that position as a newPosition
-        pxGP[pxGP$size == gpPeak,][1,]$newPosition <- pxWP[abs(pxWP$size-gpPeak) == min(abs(pxWP$size-gpPeak)),]$position
+        pxGP[pxGP$size == gpPeak,][1,]$newPosition <- pxWP[abs(pxWP$size-gpPeak) == min(abs(pxWP$size-gpPeak)),]$position[1]
       }
       # Now that we have some newposition anchors, we'll use math to calculate the newPosition of the interpeak pixels
       # first, we'll make an array of the anchor points
@@ -264,12 +235,12 @@ glycoRun <- function(
             upperValue <- pxWP[pxWP$position == nestPosition-1,]$GP_value
             lowerValue <- pxWP[pxWP$position == nestPosition+1,]$GP_value
             if(is.na(upperValue) | is.na(lowerValue)){
-              Print("Legitimate neighbors not for the missing pixel")
+              print("Legitimate neighbors not for the missing pixel")
               runRegression <- T
+            }else{
+              pxWP[pxWP$position == emptyNest[nest,]$position,]$GP_value <- mean(upperValue, lowerValue)
             }
-            pxWP[pxWP$position == emptyNest[nest,]$position,]$GP_value <- mean(upperValue, lowerValue)
           }
-
         } else if (nrow(ipList_gp) > nrow(ipList_wp)){
         # 3) The ipList_wp is smaller than the ipList_gp.
           # In this final case, we'll bin the gp pixels in to a number of bins defined by the wp pixels in the size stack
@@ -280,7 +251,6 @@ glycoRun <- function(
           }
         }
       }
-
       # So, there's a chance that, in binning the GP values across a larger WP pixel set, there will be gaps larger that one pixel
       #In these cases, NA's will still be present in the dataset, which will trigger the runRegression parameter
       # Here, we identify runs of NAs in the GP values, find the non-NA neighbors, generate a linear equation, and reassign pxWP GP_values based on the equation
@@ -318,35 +288,20 @@ glycoRun <- function(
               # Now that the current set is done, we reset the NA set to the current pixel
               stickList <- emptyNest[nest,]
               stick <- emptyNest[nest,]$position
+              }
             }
           }
         }
-            }
       # Finally, we can assign everything to px
       px <- pxWP
       
     } else {
       # if the same ladder is used for both GP and WP, then everything is simply bound together
       # Then the GP gel is read, corrected, and bound to the WP ladder
-      interim <- read.csv(gp)
-      names(interim)[1] <- "position"
-      names(interim)[2] <- "value"
-      sampleLine <- lm(value~position, data = interim)
-      intercept <- sampleLine[1]$coefficients[1]
-      slope <- sampleLine[1]$coefficients[2]
-      interim$adjValue <- interim$value-(slope*interim$position+intercept)
-      while (abs(slope) > 0.001){
-        sampleLine <- lm(adjValue~position, data = interim)
-        intercept <- sampleLine[1]$coefficients[1]
-        slope <- sampleLine[1]$coefficients[2]
-        interim$adjValue <- interim$adjValue-(slope*interim$position+intercept)
-      }
-      # The corrected GP values are saved
-      write.csv(interim, "csv/gp_corrected.csv", row.names = F)
-      if (nrow(interim) != nrow(pxWP)){
+      if (nrow(gp) != nrow(pxWP)){
         print("The WP ladder and WP sample file is not the same length as the GP sample file. Script may self-destruct...")
       }
-      pxWP$GP_value <- interim$adjValue
+      pxWP$GP_value <- gp$GP_value
       #Assign the variable to px
       px <- pxWP
 
@@ -390,6 +345,12 @@ glycoRun <- function(
     #Now that the pixels are all aligned and such, lets calculate the relative glycosylation score
     # First, lets get rid of negative values
     write.csv(px, "csv/full_values.csv", row.names = F)
+    if (TRUE %in% unique(is.na(px))){
+      col_id <- names(px)[unique(which(is.na(px), arr.ind = T)[,2])]
+      na_num <- round(100*nrow(px[is.na(px[col_id]),])/nrow(px), 2)
+      print(paste0("Residual NA values(", na_num, ") found because Jason sucks. Running it anyway..."))
+      px <- px[!is.na(px[col_id]),]
+    }
     px$GP_value <- px$GP_value+abs(min(px$GP_value))
     px$WP_value <- px$WP_value+abs(min(px$WP_value))
     px$Ladder_value <- px$Ladder_value+abs(min(px$Ladder_value))
