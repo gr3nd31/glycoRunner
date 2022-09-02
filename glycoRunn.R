@@ -671,7 +671,8 @@ dirGen <- function(workingDir="./"){
 }
 
 glycoCat <- function(targets="all",
-                     graphIt = T){
+                     graphIt = T,
+                     colorBy = "Metadata"){
   currentFiles <- list.files()
   if ("schema.csv" %in% currentFiles){
     print("Opening schema file")
@@ -706,6 +707,7 @@ glycoCat <- function(targets="all",
       if(!exists("gatheredData")){
         gatheredData <- read_csv(paste0(targetFile,"/csv/full_values.csv"), show_col_types = F)
         gatheredData$WP_value <- gatheredData$WP_value/quantile(gatheredData$WP_value)[2]
+        gatheredData$GP_value <- gatheredData$GP_value/quantile(gatheredData$GP_value)[2]
         gatheredData$Ladder_value <- gatheredData$Ladder_value/quantile(gatheredData$Ladder_value)[2]
         gatheredData$ID <- targetFile
         gatheredData$Metadata <- schema[schema$sample_id == targetFile,]$Metadata
@@ -718,6 +720,7 @@ glycoCat <- function(targets="all",
       } else {
         interimGather <- read_csv(paste0(targetFile,"/csv/full_values.csv"), show_col_types = F)
         interimGather$WP_value <- interimGather$WP_value/quantile(interimGather$WP_value)[2]
+        interimGather$GP_value <- interimGather$GP_value/quantile(interimGather$GP_value)[2]
         interimGather$Ladder_value <- interimGather$Ladder_value/quantile(interimGather$Ladder_value)[2]
         interimGather$ID <- targetFile
         interimGather$Metadata <- schema[schema$sample_id == targetFile,]$Metadata
@@ -734,7 +737,7 @@ glycoCat <- function(targets="all",
     write_csv(schema, "annotated_glycoCated.csv")
     
     if(graphIt){
-      print("Generated graphs...")
+      print("Generating graphs...")
       middi <- median(gatheredData$relGylcoScore)
       draft <- ggplot(data = gatheredData, aes(
         x = position,
@@ -754,6 +757,51 @@ glycoCat <- function(targets="all",
       ggsave("relGlycoCated.pdf", width = 10, height = 4*nrow(schema), units = "in")
       draft+geom_line(aes(y = Ladder_value), color = "#5c5c5cff")
       ggsave(paste0("relGlycoCated_ladder.pdf"), width = 10, height = 4*nrow(schema), units = "in")
+      
+      draft <- ggplot(data = gatheredData, aes(
+        x = WP_value,
+        y = GP_value,
+      ))+
+        geom_point(size = 4, aes(color = position))+
+        geom_density_2d()+
+        geom_abline(slope = 1, intercept = 0, size = 2, linetype = 2)+
+        theme_classic()+
+        xlab("Relative whole protein signal")+
+        ylab("Relative glycosylation signal")
+      draft
+      ggsave(paste0("signalCorr_position.pdf"), width = 7.5, height = 7.5, units = "in")
+      
+      draft <- ggplot(data = gatheredData, aes(
+        x = WP_value,
+        y = GP_value,
+      ))+
+        geom_point(size = 4, aes(color = relGylcoScore))+
+        geom_density_2d()+
+        geom_abline(slope = 1, intercept = 0, size = 2, linetype = 2)+
+        theme_classic()+
+        scale_color_gradient2(low = "blue", mid = "green", high = "red", midpoint = median(gatheredData$relGylcoScore))+
+        xlab("Relative whole protein signal")+
+        ylab("Relative glycosylation signal")
+      draft
+      ggsave(paste0("signalCorr_relGlycoScore.pdf"), width = 7.5, height = 7.5, units = "in")
+      
+      draft <- ggplot(data = gatheredData, aes(
+        x = WP_value,
+        y = GP_value,
+      ))+
+        geom_point(size = 4)+
+        geom_density_2d()+
+        geom_abline(slope = 1, intercept = 0, size = 2, linetype = 2)+
+        theme_classic()+
+        xlab("Relative whole protein signal")+
+        ylab("Relative glycosylation signal")
+      if (colorBy == "Metadata"){
+        draft <- draft+geom_point(size=4, aes(color = Metadata))
+      } else {
+        draft <- draft+geom_point(size=4, aes(color = ID))
+      }
+      draft
+      ggsave(paste0("signalCorr_metadata.pdf"), width = 7.5, height = 7.5, units = "in")
     }
     
   } else {
@@ -766,7 +814,8 @@ glycoCat <- function(targets="all",
 
 runGlyco <- function(directoryLocation="./", 
                      graphing = T,
-                     pairing = "all"){
+                     pairing = "all",
+                     color_by = "Metadata"){
   genDirs <- readline(prompt = "Welcome to GlycoRunn. Would you like to generate new directories (Y/n)?")
   if (genDirs!="n"){
     dirGen(workingDir = directoryLocation)
@@ -775,7 +824,8 @@ runGlyco <- function(directoryLocation="./",
   catTheGlycos <- readline(prompt = "Would you like go ahead and process data (y/N)?")
   if(catTheGlycos == "y"){
     glycoCat(targets = pairing,
-             graphIt = graphing)
+             graphIt = graphing, 
+             colorBy = color_by)
   }
 }
 
