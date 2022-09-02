@@ -705,6 +705,8 @@ glycoCat <- function(targets="all",
       print(paste0("Gathering data from: ", targetFile))
       if(!exists("gatheredData")){
         gatheredData <- read_csv(paste0(targetFile,"/csv/full_values.csv"), show_col_types = F)
+        gatheredData$WP_value <- gatheredData$WP_value/quantile(gatheredData$WP_value)[2]
+        gatheredData$Ladder_value <- gatheredData$Ladder_value/quantile(gatheredData$Ladder_value)[2]
         gatheredData$ID <- targetFile
         gatheredData$Metadata <- schema[schema$sample_id == targetFile,]$Metadata
         gatheredData$Replicate <- schema[schema$sample_id == targetFile,]$Replicate
@@ -715,6 +717,8 @@ glycoCat <- function(targets="all",
         schema[schema$sample_id == targetFile,]$lowerQuartile <- quantile(gatheredData$relGylcoScore)[2]
       } else {
         interimGather <- read_csv(paste0(targetFile,"/csv/full_values.csv"), show_col_types = F)
+        interimGather$WP_value <- interimGather$WP_value/quantile(interimGather$WP_value)[2]
+        interimGather$Ladder_value <- interimGather$Ladder_value/quantile(interimGather$Ladder_value)[2]
         interimGather$ID <- targetFile
         interimGather$Metadata <- schema[schema$sample_id == targetFile,]$Metadata
         interimGather$Replicate <- schema[schema$sample_id == targetFile,]$Replicate
@@ -731,7 +735,7 @@ glycoCat <- function(targets="all",
     
     if(graphIt){
       print("Generated graphs...")
-      middi <- quantile(gatheredData$relGylcoScore)[4]
+      middi <- median(gatheredData$relGylcoScore)
       draft <- ggplot(data = gatheredData, aes(
         x = position,
         y = WP_value,
@@ -744,7 +748,7 @@ glycoCat <- function(targets="all",
         theme_classic2()+
         theme(legend.position = "top")+
         xlab("Relative position")+
-        ylab("Whole protein gel intensity")+
+        ylab("Relative whole protein gel intensity")+
         facet_wrap(~ID, ncol = 1)
       draft
       ggsave("relGlycoCated.pdf", width = 10, height = 4*nrow(schema), units = "in")
