@@ -674,6 +674,12 @@ glycoCat <- function(targets="all",
                      graphIt = T,
                      colorBy = "Metadata"){
   currentFiles <- list.files()
+  
+  if(!"glycoCat" %in% currentFiles){
+    print("Creating glycoCat file")
+    dir.create("glycoCat")
+  }
+  
   if ("schema.csv" %in% currentFiles){
     print("Opening schema file")
     cat("\n")
@@ -733,8 +739,8 @@ glycoCat <- function(targets="all",
         gatheredData <- rbind(gatheredData, interimGather)
       }
     }
-    write_csv(gatheredData, "glycoCated.csv")
-    write_csv(schema, "annotated_glycoCated.csv")
+    write_csv(gatheredData, "glycoCat/glycoCated.csv")
+    write_csv(schema, "glycoCat/annotated_glycoCated.csv")
     
     if(graphIt){
       print("Generating graphs...")
@@ -754,9 +760,9 @@ glycoCat <- function(targets="all",
         ylab("Relative whole protein gel intensity")+
         facet_wrap(~ID, ncol = 1)
       draft
-      ggsave("relGlycoCated.pdf", width = 10, height = 4*nrow(schema), units = "in")
+      ggsave("glycoCat/relGlycoCated.pdf", width = 10, height = 4*nrow(schema), units = "in")
       draft+geom_line(aes(y = Ladder_value), color = "#5c5c5cff")
-      ggsave(paste0("relGlycoCated_ladder.pdf"), width = 10, height = 4*nrow(schema), units = "in")
+      ggsave(paste0("glycoCat/relGlycoCated_ladder.pdf"), width = 10, height = 4*nrow(schema), units = "in")
       
       draft <- ggplot(data = gatheredData, aes(
         x = WP_value,
@@ -769,7 +775,7 @@ glycoCat <- function(targets="all",
         xlab("Relative whole protein signal")+
         ylab("Relative glycosylation signal")
       draft
-      ggsave(paste0("signalCorr_position.pdf"), width = 7.5, height = 7.5, units = "in")
+      ggsave(paste0("glycoCat/signalCorr_position.pdf"), width = 7.5, height = 7.5, units = "in")
       
       draft <- ggplot(data = gatheredData, aes(
         x = WP_value,
@@ -783,7 +789,7 @@ glycoCat <- function(targets="all",
         xlab("Relative whole protein signal")+
         ylab("Relative glycosylation signal")
       draft
-      ggsave(paste0("signalCorr_relGlycoScore.pdf"), width = 7.5, height = 7.5, units = "in")
+      ggsave(paste0("glycoCat/signalCorr_relGlycoScore.pdf"), width = 7.5, height = 7.5, units = "in")
       
       draft <- ggplot(data = gatheredData, aes(
         x = WP_value,
@@ -801,7 +807,7 @@ glycoCat <- function(targets="all",
         draft <- draft+geom_point(size=4, aes(color = ID))
       }
       draft
-      ggsave(paste0("signalCorr_metadata.pdf"), width = 7.5, height = 7.5, units = "in")
+      ggsave(paste0("glycoCat/signalCorr_metadata.pdf"), width = 7.5, height = 7.5, units = "in")
     }
     
   } else {
