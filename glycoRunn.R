@@ -1,4 +1,5 @@
 library(ggpubr)
+library(tidyverse)
 
 glycoRun <- function(
   # Whole protein gel profile ladder file
@@ -633,12 +634,144 @@ banderSnatch <- function(){
   }
 }
 
-# dirsList <- list.dirs()
-# for (deer in dirsList){
-#   if(deer != "."){
-#     setwd(deer)
-#     print(paste0("Running sample: ", deer))
-#     glycoRun(ladderWP = "ladder_wp.csv", ladderGP = "ladder_gp.csv")
-#     setwd("../")
-#   }
-# }
+
+dirGen <- function(workingDir="./"){
+  if (workingDir != "./"){
+    setwd(workingDir)
+  }
+  
+  currentFiles <- list.files()
+  if ("schema.csv" %in% currentFiles){
+    print("Opening schema file")
+    cat("\n")
+    schema <- read_csv("schema.csv", progress = F, show_col_types = F)
+    if(nrow(schema == 0)){
+      print("No sample ID's detected. Please fill out the schema file")
+      break
+    }
+    print("Creating directies...")
+    for (sampleFile in schema$sample_id){
+      if (!sampleFile %in% currentFiles){
+        print(paste0("Creating directory for: ", sampleFile))
+        dir.create(sampleFile)
+      } else if(schema[schema$sample_id==sampleFile,]$Processed == "N"){
+        print(paste0("Sample ID: ", sampleFile, " already exists and is unprocessed. Skipping directory generation."))
+      } else {
+        print(paste0("Sample ID: ", sampleFile, " already exists and is processed. Skipping directory generation."))
+      }
+    }
+  } else {
+    print("Schema file not detected.")
+    cat("\n")
+    break
+  }
+  cat("\n")
+  print("Directories generated.")
+  cat("\n")
+}
+
+glycoCat <- function(targets="all",
+                     graphIt = T){
+  currentFiles <- list.files()
+  if ("schema.csv" %in% currentFiles){
+    print("Opening schema file")
+    cat("\n")
+    schema <- read_csv("schema.csv", progress = F, show_col_types = F)
+    
+    for(targetFile in schema$sample_id){
+      if (schema[schema$sample_id==targetFile,]$Processed=="N"){
+        print(paste0("Processing file: ", targetFile))
+        setwd(targetFile)
+        glycoRun()
+        setwd("../")
+        schema[schema$sample_id==targetFile,]$Processed <- "Y"
+      }
+    }
+    write_csv(schema, "schema.csv")
+    print("Processing of detected directories completed.")
+    cat("\n")
+    
+    if (targets=="all"){
+      targetList <- schema$sample_id
+    } else {
+      targetList <- schema[schema$Pair=="Y",]$sample_id
+      schema <- schema[schema$Pair=="Y",]
+    }
+    schema$meanRatio <- 0
+    schema$medianRatio <- 0
+    schema$upperQuartile <- 0
+    schema$lowerQuartile <- 0
+    for (targetFile in targetList){
+      print(paste0("Gathering data from: ", targetFile))
+      if(!exists("gatheredData")){
+        gatheredData <- read_csv(paste0(targetFile,"/csv/full_values.csv"), show_col_types = F)
+        gatheredData$ID <- targetFile
+        gatheredData$Metadata <- schema[schema$sample_id == targetFile,]$Metadata
+        gatheredData$Replicate <- schema[schema$sample_id == targetFile,]$Replicate
+        
+        schema[schema$sample_id == targetFile,]$meanRatio <- mean(gatheredData$relGylcoScore)
+        schema[schema$sample_id == targetFile,]$medianRatio <- median(gatheredData$relGylcoScore)
+        schema[schema$sample_id == targetFile,]$upperQuartile <- quantile(gatheredData$relGylcoScore)[4]
+        schema[schema$sample_id == targetFile,]$lowerQuartile <- quantile(gatheredData$relGylcoScore)[2]
+      } else {
+        interimGather <- read_csv(paste0(targetFile,"/csv/full_values.csv"), show_col_types = F)
+        interimGather$ID <- targetFile
+        interimGather$Metadata <- schema[schema$sample_id == targetFile,]$Metadata
+        interimGather$Replicate <- schema[schema$sample_id == targetFile,]$Replicate
+        
+        schema[schema$sample_id == targetFile,]$meanRatio <- mean(interimGather$relGylcoScore)
+        schema[schema$sample_id == targetFile,]$medianRatio <- median(interimGather$relGylcoScore)
+        schema[schema$sample_id == targetFile,]$upperQuartile <- quantile(interimGather$relGylcoScore)[4]
+        schema[schema$sample_id == targetFile,]$lowerQuartile <- quantile(gatheredData$relGylcoScore)[2]
+        gatheredData <- rbind(gatheredData, interimGather)
+      }
+    }
+    write_csv(gatheredData, "glycoCated.csv")
+    write_csv(schema, "annotated_glycoCated.csv")
+    
+    if(graphIt){
+      print("Generated graphs...")
+      middi <- quantile(gatheredData$relGylcoScore)[4]
+      draft <- ggplot(data = gatheredData, aes(
+        x = position,
+        y = WP_value,
+        color = relGylcoScore,
+        fill = relGylcoScore
+      ))+
+        scale_color_gradient2(low = "blue", mid = "green", high = "red", midpoint = mean(middi))+
+        scale_fill_gradient2(low = "blue", mid = "green", high = "red", midpoint = mean(middi))+
+        geom_bar(stat = "identity")+
+        theme_classic2()+
+        theme(legend.position = "top")+
+        xlab("Relative position")+
+        ylab("Whole protein gel intensity")+
+        facet_wrap(~ID, ncol = 1)
+      draft
+      ggsave("relGlycoCated.pdf", width = 10, height = 4*nrow(schema), units = "in")
+      draft+geom_line(aes(y = Ladder_value), color = "#5c5c5cff")
+      ggsave(paste0("relGlycoCated_ladder.pdf"), width = 10, height = 4*nrow(schema), units = "in")
+    }
+    
+  } else {
+    print("Schema file not detected.")
+    cat("\n")
+    break
+  }
+  print("Completed.")
+}
+
+runGlyco <- function(directoryLocation="./", 
+                     graphing = T,
+                     pairing = "all"){
+  genDirs <- readline(prompt = "Welcome to GlycoRunn. Would you like to generate new directories (Y/n)?")
+  if (genDirs!="n"){
+    dirGen(workingDir = directoryLocation)
+  }
+  cat("\n")
+  catTheGlycos <- readline(prompt = "Would you like go ahead and process data (y/N)?")
+  if(catTheGlycos == "y"){
+    glycoCat(targets = pairing,
+             graphIt = graphing)
+  }
+}
+
