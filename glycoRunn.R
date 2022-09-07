@@ -645,9 +645,9 @@ dirGen <- function(workingDir="./"){
     print("Opening schema file")
     cat("\n")
     schema <- read_csv("schema.csv", progress = F, show_col_types = F)
-    if(nrow(schema == 0)){
+    if(nrow(schema)==0){
       print("No sample ID's detected. Please fill out the schema file")
-      break
+      
     }
     print("Creating directies...")
     for (sampleFile in schema$sample_id){
@@ -663,7 +663,7 @@ dirGen <- function(workingDir="./"){
   } else {
     print("Schema file not detected.")
     cat("\n")
-    break
+  
   }
   cat("\n")
   print("Directories generated.")
